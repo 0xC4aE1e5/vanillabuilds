@@ -54,5 +54,5 @@ jobs:
             This is a vanillabuild, built every day.
           prerelease: true
           tag_name: ${{ steps.getdate.outputs.milliseconds_since_epoch }}
-          name: ${{ steps.t1.outputs.year }}.${{ steps.t1.outputs.month }}.${{ steps.t1.outputs.day }}
+          name: ${{ steps.getdate.outputs.year }}.${{ steps.getdate.outputs.month }}.${{ steps.getdate.outputs.day }}
       
