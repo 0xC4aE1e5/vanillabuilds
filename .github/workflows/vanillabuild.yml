@@ -1,0 +1,58 @@
+name: CI
+permissions:
+  contents: write
+'on':
+  workflow_dispatch: null
+  schedule:
+    - cron: '0 0 * * *'
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    container:
+      image: 'registry.vanillaos.org/vanillaos/pico:main'
+      volumes:
+        - '/proc:/proc'
+        - '/:/run/host'
+      options: '--privileged -it'
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: 'Vanilla-OS/os'
+      - name: De-bloat stock image
+        run: |
+          rm -r /run/host/usr/share/dotnet
+          rm -r /run/host${{ runner.tool_cache }}
+      - name: Install needed packages
+        run: apt update && apt install debootstrap -y
+      - name: Build ISO
+        run: ./build.sh etc/terraform.conf
+      - uses: actions/upload-artifact@v3
+        with:
+          name: VanillaOS
+          path: builds/
+  release:
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Create artifacts directory
+        run: 'mkdir -p ${{ github.workspace }}/artifacts'
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: VanillaOS
+          path: '${{ github.workspace }}/artifacts'
+      - name: Get date
+        id: getdate
+        uses: Kaven-Universe/github-action-current-date-time@v1
+        with:
+          format: "YYYY_MM_DD HH_mm_ss_SSS"
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "${{ github.workspace }}/artifacts/amd64/*"
+          body: |
+            This is a vanillabuild, built every day.
+          prerelease: true
+          tag_name: ${{ steps.getdate.outputs.milliseconds_since_epoch }}
+          name: ${{ steps.t1.outputs.year }}.${{ steps.t1.outputs.month }}.${{ steps.t1.outputs.day }}
+      
